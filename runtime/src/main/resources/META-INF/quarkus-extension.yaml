@@ -1,0 +1,9 @@
+name: Quarkus Multtenancy
+#description: Provide a method for resolving tenant settings and introduce a tenant CDI scope
+metadata:
+#  keywords:
+#    - quarkus-multitenancy
+#  guide: ...
+#  categories:
+#    - "miscellaneous"
+#  status: "preview"
