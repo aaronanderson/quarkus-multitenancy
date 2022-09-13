@@ -15,19 +15,19 @@ public class TenantLoaderImpl implements TenantLoader {
 
 	@Override
 	public Map<String, Object> load(String tenantId) {
-		Map<String, Object> tenantDetails = new HashMap<>();
+		Map<String, Object> tenantConfig = new HashMap<>();
 		if ("tenant1".equals(tenantId)) {
-			tenantDetails.put("name", "Tenant 1");
-			tenantDetails.put("color", "blue");
+			tenantConfig.put("name", "Tenant 1");
+			tenantConfig.put("color", "blue");
 		} else if ("tenant2".equals(tenantId)) {
-			tenantDetails.put("name", "Tenant 2");
-			tenantDetails.put("color", "green");
+			tenantConfig.put("name", "Tenant 2");
+			tenantConfig.put("color", "green");
 		} else if ("tenant3".equals(tenantId)) {
-			tenantDetails.put("name", "Tenant 3");
-			tenantDetails.put("color", "orange");
+			tenantConfig.put("name", "Tenant 3");
+			tenantConfig.put("color", "orange");
 		}
 
-		return tenantDetails;
+		return tenantConfig;
 
 	}
 

@@ -40,14 +40,14 @@ public class TenantAuthMechanism implements HttpAuthenticationMechanism {
 	    // do some custom action and delegate
         //    return mfa.authenticate(context, identityProviderManager);
 		//return oidc.authenticate(context, identityProviderManager);
-		log.infof("authenticate");
+		log.debugf("authenticate");
 		return ba.authenticate(context, identityProviderManager);
 	}
 
 	@Override
 	public Uni<ChallengeData> getChallenge(RoutingContext context) {		
 		//return mfa.getChallenge(context);
-		log.infof("getChallenge");
+		log.debugf("getChallenge");
 		return ba.getChallenge(context);
 	}
 

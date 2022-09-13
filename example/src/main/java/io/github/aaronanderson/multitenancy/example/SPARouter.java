@@ -5,18 +5,28 @@ import static io.vertx.core.http.HttpHeaders.CACHE_CONTROL;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
+import java.util.List;
+import java.util.function.BiFunction;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.ContextException;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantContext;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantId;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProperty;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InjectableContext;
+import io.quarkus.arc.InjectableInstance;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
+import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
@@ -27,15 +37,14 @@ import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 public class SPARouter {
 
 	private static final Logger log = Logger.getLogger(SPARouter.class);
-	
+
 	@ConfigProperty(name = "quarkus.profile")
 	String profile;
 
 	@Inject
 	@CacheName("template-cache")
 	Cache cache;
-	
-	
+
 	public void setupRouter(@Observes @Priority(value = 1) Router router) {
 		log.infof("Setting up routes\n");
 
@@ -48,62 +57,48 @@ public class SPARouter {
 		router.errorHandler(401, accessDenied);
 
 		router.route("/mfa_login").handler(this::handleLogin);
-		router.route("/mfa_logout").handler(template("logout.html", "/", null));
+		router.route("/mfa_logout").handler(this::handleLogout);
 
-		router.route("/").handler(template("index.html", "/", null));
+		router.route("/").handler(handleRoot());
 
-		/*
-		boolean isLocal = Environment.valueOf(profile.toUpperCase()) == Environment.LOCAL;
-		Tenant localTenant = new Tenant("tenant", Environment.LOCAL, new HashMap<>());
-		
-		
-		Handler<RoutingContext> tenantRouteHandler = ctx -> {
-		
-			System.out.format("Tenant Route: %s\n", ctx.request().path());
-		
-			if (!ctx.get(REQUEST_ROUTED, false)) {
-				if (isLocal) {
-					ctx.put(CONTEXT_TENANT, localTenant);
-				}
-				Tenant tenantConfig = ctx.get(CONTEXT_TENANT);
-				if (tenantConfig != null) {
-					String tenantPath = "/" + tenantConfig.name();
-					String path = ctx.request().path();
-		
-					if (path.startsWith(tenantPath)) {
-						ctx.put(REQUEST_ROUTED, true);
-						String localPath = path.substring(tenantPath.length());
-						if (localPath.startsWith("/logout")) {
-							ctx.redirect(TenantUtil.logoutRedirectURL(ctx));
-						} else if (localPath.contains(".")) { // || localPath.startsWith("/graphql")
-							ctx.reroute(localPath);
-						} else if (localPath.isEmpty()) {
-							// If needed send redirect for empty path to compensate for Vaadin Router issue with base URLs not ending with a slash
-							ctx.response().putHeader(LOCATION, tenantPath + "/").setStatusCode(302).end();
-						} else {
-							template("index.html", tenantPath + "/", ctx, null);
-						}
-		
-						return;
-					}
-				}
+	}
+
+	// private void handleRoot(RoutingContext context) {
+	private Handler<RoutingContext> handleRoot() {
+		// TODO see why context propagation is not working without BlockingHandlerDecorator which places the handler back on the original event loop
+		return new BlockingHandlerDecorator(context -> {
+
+			QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
+			final String user = quser.principal().getString("username");
+
+			final InjectableContext tenantContext = Arc.container().getActiveContext(TenantScoped.class);
+			if (tenantContext != null) {
+				// TODO research String injection/bean lookup
+				String tenantId = Arc.container().instance(Object.class, TenantId.LITERAL).get().toString();
+				String tenantColor = getTenantProperty("color", "red").toString();
+
+				template("tenant.html", "/" + tenantId + "/", (t, c) -> {
+					t = t.replace("@@USER@@", user);
+					t = t.replace("@@TENANT_ID@@", tenantId);
+					t = t.replace("@@TENANT_COLOR@@", tenantColor);
+					return t;
+				}).handle(context);
+			} else {
+				template("index.html", "/", (t, c) -> {
+					t = t.replace("@@USER@@", user);
+					return t;
+				}).handle(context);
 			}
-		
-			ctx.request().pause();
-			ctx.next();
-			ctx.request().resume();
-		
-		};
-		
-		router.route("/*").handler(tenantRouteHandler);*/
+		}, true);
 
 	}
 
 	private void handleLogin(RoutingContext context) {
-		//ViewAction action = context.get(MfaAuthConstants.AUTH_ACTION_KEY);
-		//ViewStatus status = context.get(MfaAuthConstants.AUTH_STATUS_KEY);
-		//log.infof("action: %s status: %s", action, status);
 		template("login.html", "/", null).handle(context);
+	}
+
+	private void handleLogout(RoutingContext context) {
+		template("logout.html", "/", null).handle(context);
 	}
 
 	public String lookupTemplate(String templateName, String base) {
@@ -112,7 +107,8 @@ public class SPARouter {
 			if (is != null) {
 				try {
 					String template = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-					return template.replaceAll("@@BASE@@", base);
+					template = template.replaceAll("@@BASE@@", base);
+					return template;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -121,14 +117,25 @@ public class SPARouter {
 		}).await().indefinitely();
 	}
 
-	private Handler<RoutingContext> template(String templateName, String base, Function<String, String> mapper) {
-		//Arc.container().instance(String.class, TenantScoped.LITERAL);
+	private Object getTenantProperty(String name, String defaultValue) {
+		// Arc.container().instance() does not pass qualifiers to the producer's InjectionPoint parameter. Perhaps a defect.
+		InjectableInstance<Object> colorInstance = Arc.container().select(Object.class, new TenantProperty.Literal("color"));
+		Object color = colorInstance.get();
+		if (color != null) {
+			colorInstance.destroy(color);
+		}
+		return color;
+	}
+
+	private Handler<RoutingContext> template(String templateName, String base, BiFunction<String, RoutingContext, String> mapper) {
+
 		return new BlockingHandlerDecorator(ctx -> {
+
 			HttpServerResponse response = ctx.response();
 			String template = lookupTemplate(templateName, base);
 			if (template != null) {
 				if (mapper != null) {
-					template = mapper.apply(template);
+					template = mapper.apply(template, ctx);
 				}
 				response.setStatusCode(200);
 				response.setChunked(true);

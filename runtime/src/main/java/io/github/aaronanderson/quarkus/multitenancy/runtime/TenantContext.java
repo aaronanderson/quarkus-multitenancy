@@ -20,6 +20,7 @@ import io.quarkus.arc.ManagedContext;
 import io.quarkus.arc.impl.ContextInstanceHandleImpl;
 import io.quarkus.arc.impl.CreationalContextImpl;
 
+//Inspired by RequstContext
 public class TenantContext implements ManagedContext {
 
 	private static final Logger log = Logger.getLogger(TenantContext.class);
@@ -37,8 +38,6 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public <T> T get(Contextual<T> contextual, CreationalContext<T> creationalContext) {
-		log.infof("get Contextual CreationalContext");
-
 		TenantContextState ctxState = currentContext.get();
 		if (ctxState == null) {
 			throw new ContextNotActiveException("TenantScope not activated");
@@ -56,7 +55,6 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public <T> T get(Contextual<T> contextual) {
-		log.infof("get Contextual");
 		InjectableBean<T> bean = (InjectableBean<T>) contextual;
 		TenantContextState state = currentContext.get();
 		if (state == null) {
@@ -68,7 +66,6 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public void destroy(Contextual<?> contextual) {
-		log.infof("destroy Contextual");
 		TenantContextState state = currentContext.get();
 		if (state == null) {
 			throw new ContextNotActiveException("TenantScope not activated");
@@ -81,20 +78,17 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public boolean isActive() {
-		log.infof("isActive");
 		return currentContext.get() != null;
 	}
 
 	@Override
 	public void destroy() {
-		log.infof("destroy");
 		destroy(currentContext.get());
 
 	}
 
 	@Override
 	public ContextState getState() {
-		log.infof("getStatus");
 		TenantContextState state = currentContext.get();
 		if (state == null) {
 			throw new ContextNotActiveException("TenantScope not activated");
@@ -104,7 +98,6 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public void activate(ContextState initialState) {
-		log.infof("activate ContextState");
 		if (initialState == null) {
 			currentContext.set(new TenantContextState(new ConcurrentHashMap<>()));
 		} else {
@@ -115,11 +108,13 @@ public class TenantContext implements ManagedContext {
 			}
 		}
 
+		log.debugf("activate %s", currentContext.get());
+
 	}
 
 	@Override
 	public void deactivate() {
-		log.infof("deactivate");
+		log.debugf("deactivate %s", currentContext.get());
 		currentContext.remove();
 	}
 

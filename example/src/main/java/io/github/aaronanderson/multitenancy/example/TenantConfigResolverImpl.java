@@ -1,4 +1,4 @@
-package io.github.aaronanderson.quarkus.multitenancy.runtime;
+package io.github.aaronanderson.multitenancy.example;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -9,6 +9,7 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler;
 import io.quarkus.oidc.OidcRequestContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.OidcTenantConfig.ApplicationType;
@@ -28,12 +29,12 @@ public class TenantConfigResolverImpl implements TenantConfigResolver {
 		return Uni.createFrom().item(() -> {
 			String tenantId = routingContext.get(TenantResolverHandler.CONTEXT_TENANT_ID);
 			if (tenantId != null) {
-				Map<String, Object> tenantDetails = routingContext.get(TenantResolverHandler.CONTEXT_TENANT);
+				Map<String, Object> tenantConfig = routingContext.get(TenantResolverHandler.CONTEXT_TENANT);
 				OidcTenantConfig oidcConfig = new OidcTenantConfig();
 				oidcConfig.setApplicationType(ApplicationType.WEB_APP);
 				oidcConfig.setTenantId((String) tenantId);
-				oidcConfig.setAuthServerUrl((String) tenantDetails.get("authURL"));
-				oidcConfig.setClientId((String) tenantDetails.get("clientId"));
+				oidcConfig.setAuthServerUrl((String) tenantConfig.get("authURL"));
+				oidcConfig.setClientId((String) tenantConfig.get("clientId"));
 
 				// Logout logout = new Logout();
 				// logout.setPath(Optional.of("/" + tenantName + "/logout"));
@@ -48,7 +49,7 @@ public class TenantConfigResolverImpl implements TenantConfigResolver {
 				oidcConfig.setAuthentication(auth);
 
 				OidcTenantConfig.Credentials credentials = new OidcTenantConfig.Credentials();
-				credentials.setSecret((String) tenantDetails.get("clientSecret"));
+				credentials.setSecret((String) tenantConfig.get("clientSecret"));
 				oidcConfig.setCredentials(credentials);
 				return oidcConfig;
 			}

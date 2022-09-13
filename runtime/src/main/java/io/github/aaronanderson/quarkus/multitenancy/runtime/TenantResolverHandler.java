@@ -12,11 +12,11 @@ import org.jboss.logging.Logger;
 import com.github.benmanes.caffeine.cache.Cache;
 
 import io.quarkus.arc.Arc;
-import io.quarkus.arc.CurrentContext;
 import io.quarkus.arc.InjectableContext;
-import io.quarkus.arc.InjectableContext.ContextState;
+import io.quarkus.arc.InstanceHandle;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 
 public class TenantResolverHandler implements Handler<RoutingContext> {
 
@@ -37,31 +37,56 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 
 	@Override
 	public void handle(RoutingContext ctx) {
+		// Execute in a blocking decerator to ensure entire request is served on the same event loop thread. TODO investigate context propagation
+		// new BlockingHandlerDecorator(ctx -> {
+		// Rerouted requests will already have the RoutingCountext data set and an active CDI TenantScope TenantContext
+
 		log.debugf("handle %s", ctx.request().path());
-		Optional<String> tenantId = tenantResolver.resolve(ctx);
-		if (tenantId.isPresent()) {
-			Map<String, Object> tenantDetails = tenantResolverCache.get(tenantId.get(), k -> {
-				return tenantLoader.load(k);
-			});
-			if (tenantDetails != null && !tenantDetails.isEmpty()) {
-				log.debugf("Loaded details for tenant ID %s", tenantId.get());
-				ctx.put(CONTEXT_TENANT_ID, tenantId.get());
-				ctx.put(CONTEXT_TENANT, tenantDetails);
-				List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
-				if (contexts.size() != 1) {
-					throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+		String tenantId = ctx.get(CONTEXT_TENANT_ID);
+		Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
+		if (tenantConfig == null) {
+			Optional<String> resolvedTenantId = tenantResolver.resolve(ctx);
+			if (resolvedTenantId.isPresent()) {
+				tenantId = resolvedTenantId.get();
+				tenantConfig = tenantResolverCache.get(tenantId, k -> {
+					return tenantLoader.load(k);
+				});
+				if (tenantConfig != null && !tenantConfig.isEmpty()) {
+					log.debugf("Loaded details for tenant ID %s", tenantId);
+					ctx.put(CONTEXT_TENANT_ID, tenantId);
+					ctx.put(CONTEXT_TENANT, tenantConfig);
 				}
-				TenantContext tenantContext = (TenantContext) contexts.get(0);
-				try {
-					tenantContext.activate();
-					ctx.next();
-				} finally {
-					tenantContext.terminate();
-				}
-				return;
 			}
 		}
+
+		if (tenantId != null && tenantConfig != null) {
+			List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+			if (contexts.size() != 1) {
+				throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+			}
+			TenantContext tenantContext = (TenantContext) contexts.get(0);
+
+			if (!tenantContext.isActive()) {
+				tenantContext.activate();
+				log.debugf("Activate Called %s", tenantContext.getState());
+				// TODO redirects may happen on a different thread
+				ctx.addEndHandler(v -> {
+
+					// ctx.next();
+					if (tenantContext.isActive()) {
+						log.debugf("End Handler Terminate called %s", tenantContext.getState());
+						tenantContext.terminate();
+					}
+				});
+				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
+				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
+			}
+//			} else {
+//				ctx.next();
+		}
 		ctx.next();
+		// }, true).handle(context);
+
 	}
 
 	static enum ResolverMode {

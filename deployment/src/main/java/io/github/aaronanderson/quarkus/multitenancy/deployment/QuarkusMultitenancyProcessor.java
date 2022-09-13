@@ -4,11 +4,13 @@ import javax.enterprise.context.ApplicationScoped;
 
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantContext;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantLoader;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProvider;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantRecorder;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolver;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantLoader;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantResolver;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.BeanContainerListenerBuildItem;
 import io.quarkus.arc.deployment.ContextRegistrationPhaseBuildItem;
@@ -31,13 +33,12 @@ class QuarkusMultitenancyProcessor {
 		return new FeatureBuildItem(FEATURE);
 	}
 
-//	@BuildStep
-//	public void myBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
-//		AdditionalBeanBuildItem.Builder builder = AdditionalBeanBuildItem.builder().setUnremovable();
-//		builder.addBeanClass(TenantResolver.class);
-//		builder.addBeanClass(TenantLoader.class);
-//		additionalBeans.produce(builder.build());
-//	}
+	@BuildStep
+	public void myBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
+		AdditionalBeanBuildItem.Builder builder = AdditionalBeanBuildItem.builder().setUnremovable();
+		builder.addBeanClass(TenantProvider.class);
+		additionalBeans.produce(builder.build());
+	}
 
 //	@BuildStep
 //	public void markUnremovable(BuildProducer<UnremovableBeanBuildItem> unremovable) {

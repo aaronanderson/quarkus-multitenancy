@@ -11,7 +11,7 @@ import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 
 /**
- * MFA IdentityProvider
+ * Trust all basic auth
  */
 @ApplicationScoped
 public class IdentityProviderImpl implements IdentityProvider<UsernamePasswordAuthenticationRequest> {
