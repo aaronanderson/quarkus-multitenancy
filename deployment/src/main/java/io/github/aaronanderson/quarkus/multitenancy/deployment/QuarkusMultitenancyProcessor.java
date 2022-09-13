@@ -9,8 +9,8 @@ import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolver;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantLoader;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantResolver;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
-import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
+import io.quarkus.arc.deployment.BeanContainerListenerBuildItem;
 import io.quarkus.arc.deployment.ContextRegistrationPhaseBuildItem;
 import io.quarkus.arc.deployment.ContextRegistrationPhaseBuildItem.ContextConfiguratorBuildItem;
 import io.quarkus.arc.deployment.CustomScopeBuildItem;
@@ -20,7 +20,6 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
 
 class QuarkusMultitenancyProcessor {
@@ -32,29 +31,39 @@ class QuarkusMultitenancyProcessor {
 		return new FeatureBuildItem(FEATURE);
 	}
 
+//	@BuildStep
+//	public void myBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
+//		AdditionalBeanBuildItem.Builder builder = AdditionalBeanBuildItem.builder().setUnremovable();
+//		builder.addBeanClass(TenantResolver.class);
+//		builder.addBeanClass(TenantLoader.class);
+//		additionalBeans.produce(builder.build());
+//	}
+
+//	@BuildStep
+//	public void markUnremovable(BuildProducer<UnremovableBeanBuildItem> unremovable) {
+//		unremovable.produce(new UnremovableBeanBuildItem(new UnremovableBeanBuildItem.BeanTypeExclusion(DotName.createSimple((DefaultTenantResolver.class.getName())))));
+//		unremovable.produce(new UnremovableBeanBuildItem(new UnremovableBeanBuildItem.BeanTypeExclusion(DotName.createSimple((DefaultTenantLoader.class.getName())))));
+//	}
+
 	@BuildStep
-	public void myBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
-		AdditionalBeanBuildItem.Builder builder = AdditionalBeanBuildItem.builder().setUnremovable();
-		builder.addBeanClass(TenantResolver.class);
-		builder.addBeanClass(TenantLoader.class);
-		additionalBeans.produce(builder.build());
+	@Record(ExecutionTime.STATIC_INIT)
+	void setupAuthenticationMechanisms(TenantRecorder recorder, BuildProducer<BeanContainerListenerBuildItem> beanContainerListenerBuildItemBuildProducer) {
+		beanContainerListenerBuildItemBuildProducer.produce(new BeanContainerListenerBuildItem(recorder.initTenantContext()));
 	}
 
 	@BuildStep
 	@Record(ExecutionTime.RUNTIME_INIT)
-	void defaultTenantResolver(TenantRecorder recorder, BuildProducer<SyntheticBeanBuildItem> syntheticBeans) {
-		RuntimeValue<DefaultTenantResolver> defaultResolver = recorder.defaultResolver();
-		RuntimeValue<DefaultTenantLoader> defaultLoader = recorder.defaultLoader();
-		syntheticBeans.produce(SyntheticBeanBuildItem.configure(DefaultTenantResolver.class).defaultBean().addType(TenantResolver.class).scope(ApplicationScoped.class).runtimeValue(defaultResolver).unremovable().setRuntimeInit().done());
-		syntheticBeans.produce(SyntheticBeanBuildItem.configure(DefaultTenantLoader.class).defaultBean().addType(TenantLoader.class).scope(ApplicationScoped.class).runtimeValue(defaultLoader).unremovable().setRuntimeInit().done());
+	void defaultTenantImplementations(TenantRecorder recorder, BuildProducer<SyntheticBeanBuildItem> syntheticBeans) {
+		syntheticBeans.produce(SyntheticBeanBuildItem.configure(DefaultTenantResolver.class).defaultBean().unremovable().addType(TenantResolver.class).scope(ApplicationScoped.class).runtimeValue(recorder.defaultResolver()).setRuntimeInit().done());
+		syntheticBeans.produce(SyntheticBeanBuildItem.configure(DefaultTenantLoader.class).defaultBean().unremovable().addType(TenantLoader.class).scope(ApplicationScoped.class).runtimeValue(recorder.defaultLoader()).setRuntimeInit().done());
 
 	}
 
 	@BuildStep
 	@Record(ExecutionTime.RUNTIME_INIT)
-	void tenantResolver(TenantRecorder recorder, BeanContainerBuildItem beanContainer, BuildProducer<FilterBuildItem> filters) {
-		filters.produce(new FilterBuildItem(recorder.tenantResolverHandler(beanContainer.getValue()), FilterBuildItem.AUTHENTICATION + 1));
-		filters.produce(new FilterBuildItem(recorder.tenantPathHandler(), FilterBuildItem.AUTHENTICATION));
+	void tenantFilters(TenantRecorder recorder, BeanContainerBuildItem beanContainer, BuildProducer<FilterBuildItem> filters) {
+		filters.produce(new FilterBuildItem(recorder.tenantResolverHandler(beanContainer.getValue()), FilterBuildItem.AUTHENTICATION + 2));
+		filters.produce(new FilterBuildItem(recorder.tenantPathHandler(), FilterBuildItem.AUTHENTICATION + 1));
 	}
 
 	@BuildStep

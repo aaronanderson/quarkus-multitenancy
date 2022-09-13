@@ -10,7 +10,7 @@ import io.quarkus.runtime.annotations.ConfigRoot;
 import io.quarkus.runtime.annotations.DefaultConverter;
 
 @ConfigRoot(name = "multitenancy", phase = ConfigPhase.RUN_TIME)
-public class MultitenancyRunTimeConfig {
+public class TenantRunTimeConfig {
 
 	/**
 	* Standard tenant resolution mode, PATH or SUBDOMAIN
@@ -24,10 +24,16 @@ public class MultitenancyRunTimeConfig {
 	*/
 	@ConfigItem(name = "reroute-paths", defaultValue = "true")
 	public boolean reroutePaths;
+	
+	/**
+	* If the root tenant request does not end in a slash redirect. This is useful for some SPA frameworks.  i.e. /tenant1 -> /tenant1/ 
+	*/
+	@ConfigItem(name = "root-redirect", defaultValue = "true")
+	public boolean rootRedirect;
 
 	/**
 	* If base path is used to resolve tenants specify a list of root paths that should be ignored during tenant resolution
 	*/
-	@ConfigItem(name = "exclude-paths")
+	@ConfigItem(name = "exclude-paths", defaultValue = "/q")
 	Optional<List<String>> excludePaths;
 }

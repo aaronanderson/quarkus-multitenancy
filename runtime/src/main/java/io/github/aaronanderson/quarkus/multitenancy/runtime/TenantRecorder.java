@@ -1,7 +1,10 @@
 package io.github.aaronanderson.quarkus.multitenancy.runtime;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.enterprise.context.ContextException;
 
 import org.jboss.logging.Logger;
 
@@ -10,7 +13,10 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantLoader;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantResolver;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InjectableContext;
 import io.quarkus.arc.runtime.BeanContainer;
+import io.quarkus.arc.runtime.BeanContainerListener;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
 import io.vertx.core.Handler;
@@ -22,14 +28,14 @@ public class TenantRecorder {
 
 	private static final Logger log = Logger.getLogger(TenantRecorder.class);
 
-	final RuntimeValue<MultitenancyRunTimeConfig> config;
+	final RuntimeValue<TenantRunTimeConfig> config;
 
-	public TenantRecorder(RuntimeValue<MultitenancyRunTimeConfig> config) {
+	public TenantRecorder(RuntimeValue<TenantRunTimeConfig> config) {
 		this.config = config;
 	}
 
 	public RuntimeValue<DefaultTenantResolver> defaultResolver() {
-		MultitenancyRunTimeConfig runtimeConfig = config.getValue();
+		TenantRunTimeConfig runtimeConfig = config.getValue();
 		return new RuntimeValue<>(new DefaultTenantResolver(runtimeConfig.resolverMode, runtimeConfig.excludePaths));
 	}
 
@@ -55,9 +61,26 @@ public class TenantRecorder {
 
 	public Handler<RoutingContext> tenantPathHandler() {
 		if (config.getValue().reroutePaths) {
-			return new TenantPathHandler();
+			return new TenantPathHandler(config.getValue().rootRedirect);
 		}
 		return null;
+	}
+
+	public BeanContainerListener initTenantContext() {
+		return new BeanContainerListener() {
+
+			@Override
+			public void created(BeanContainer container) {
+				List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+				if (contexts.size() != 1) {
+					throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+				}
+				TenantContext tenantContext = (TenantContext) contexts.get(0);
+				tenantContext.setCurrentContext(Arc.container().getCurrentContextFactory().create(TenantScoped.class));
+			}
+
+		};
+
 	}
 
 }

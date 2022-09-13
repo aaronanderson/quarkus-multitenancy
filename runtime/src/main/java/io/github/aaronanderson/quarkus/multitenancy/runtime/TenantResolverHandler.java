@@ -5,11 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.enterprise.context.ContextException;
+
 import org.jboss.logging.Logger;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
-import io.smallrye.mutiny.Uni;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.CurrentContext;
+import io.quarkus.arc.InjectableContext;
+import io.quarkus.arc.InjectableContext.ContextState;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -42,6 +47,18 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 				log.debugf("Loaded details for tenant ID %s", tenantId.get());
 				ctx.put(CONTEXT_TENANT_ID, tenantId.get());
 				ctx.put(CONTEXT_TENANT, tenantDetails);
+				List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+				if (contexts.size() != 1) {
+					throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+				}
+				TenantContext tenantContext = (TenantContext) contexts.get(0);
+				try {
+					tenantContext.activate();
+					ctx.next();
+				} finally {
+					tenantContext.terminate();
+				}
+				return;
 			}
 		}
 		ctx.next();
@@ -67,7 +84,7 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 				String host = routingContext.request().host();
 				String[] parts = host.split("\\.");
 				if (parts.length > 0) {
-					log.debugf("Resolved tenant %s from host %s", parts[1], host);
+					log.debugf("Resolved candidate tenant %s from host %s", parts[1], host);
 					return Optional.of(parts[1]);
 				}
 			} else {
@@ -75,8 +92,8 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 				String[] parts = path.split("/");
 				if (parts.length > 0) {
 					String candidate = parts[1];
-					if (!candidate.contains(".") && !excludePaths.contains(candidate)) {
-						log.debugf("Resolved tenant %s from path %s", parts[1], path);
+					if (!candidate.contains(".") && !excludePaths.contains("/" + candidate)) {
+						log.debugf("Resolved candidate tenant %s from path %s", parts[1], path);
 						return Optional.of(parts[1]);
 					}
 				}

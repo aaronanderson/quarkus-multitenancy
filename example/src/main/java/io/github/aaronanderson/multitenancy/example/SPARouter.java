@@ -15,8 +15,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
-import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
-import io.quarkus.arc.Arc;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
 import io.vertx.core.Handler;
@@ -36,7 +34,8 @@ public class SPARouter {
 	@Inject
 	@CacheName("template-cache")
 	Cache cache;
-
+	
+	
 	public void setupRouter(@Observes @Priority(value = 1) Router router) {
 		log.infof("Setting up routes\n");
 

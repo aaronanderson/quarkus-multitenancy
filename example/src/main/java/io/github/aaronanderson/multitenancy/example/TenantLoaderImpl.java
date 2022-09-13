@@ -7,18 +7,28 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantLoader;
+import io.quarkus.arc.Unremovable;
 
 @ApplicationScoped
+@Unremovable
 public class TenantLoaderImpl implements TenantLoader {
 
 	@Override
 	public Map<String, Object> load(String tenantId) {
 		Map<String, Object> tenantDetails = new HashMap<>();
 		if ("tenant1".equals(tenantId)) {
-			return tenantDetails;
+			tenantDetails.put("name", "Tenant 1");
+			tenantDetails.put("color", "blue");
+		} else if ("tenant2".equals(tenantId)) {
+			tenantDetails.put("name", "Tenant 2");
+			tenantDetails.put("color", "green");
+		} else if ("tenant3".equals(tenantId)) {
+			tenantDetails.put("name", "Tenant 3");
+			tenantDetails.put("color", "orange");
 		}
 
-		return Collections.EMPTY_MAP;
+		return tenantDetails;
+
 	}
 
 }
