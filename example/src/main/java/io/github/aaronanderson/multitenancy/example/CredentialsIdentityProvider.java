@@ -11,7 +11,8 @@ import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 
 /**
- * Trust all basic auth
+ * Trust all basic or form based auth credentials
+ * TODO add support for tenant checking to prevent cross tenant access 
  */
 @ApplicationScoped
 public class CredentialsIdentityProvider implements IdentityProvider<UsernamePasswordAuthenticationRequest> {

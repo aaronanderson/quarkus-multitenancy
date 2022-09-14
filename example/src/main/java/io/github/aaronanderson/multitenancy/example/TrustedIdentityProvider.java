@@ -11,7 +11,7 @@ import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 
 /**
- * Trust all basic auth
+ * Trust all authenticated cookies
  */
 @ApplicationScoped
 public class TrustedIdentityProvider implements IdentityProvider<TrustedAuthenticationRequest> {

@@ -1,6 +1,5 @@
 package io.github.aaronanderson.multitenancy.example;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,11 +30,8 @@ public class TenantLoaderImpl implements TenantLoader {
 			tenantConfig.put("oidc-auth-url", "http://localhost:8081/realms/quarkus");
 			tenantConfig.put("oidc-client-id", "quarkus-app");
 			tenantConfig.put("oidc-client-secret", "secret");
-
 		}
-
 		return tenantConfig;
-
 	}
-
+	
 }
