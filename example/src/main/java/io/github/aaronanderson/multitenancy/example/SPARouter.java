@@ -5,23 +5,21 @@ import static io.vertx.core.http.HttpHeaders.CACHE_CONTROL;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.BiFunction;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.ContextException;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
-import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantContext;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantId;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProperty;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
 import io.quarkus.arc.Arc;
+import io.quarkus.arc.CurrentContext;
 import io.quarkus.arc.InjectableContext;
 import io.quarkus.arc.InjectableInstance;
 import io.quarkus.cache.Cache;
@@ -59,37 +57,36 @@ public class SPARouter {
 		router.route("/mfa_login").handler(this::handleLogin);
 		router.route("/mfa_logout").handler(this::handleLogout);
 
-		router.route("/").handler(handleRoot());
+		router.route("/").handler(this::handleRoot);
 
 	}
 
 	// private void handleRoot(RoutingContext context) {
-	private Handler<RoutingContext> handleRoot() {
+	private void handleRoot(RoutingContext context) {
 		// TODO see why context propagation is not working without BlockingHandlerDecorator which places the handler back on the original event loop
-		return new BlockingHandlerDecorator(context -> {
+		// return new BlockingHandlerDecorator(
+		QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
+		final String user = quser.principal().getString("username");
 
-			QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
-			final String user = quser.principal().getString("username");
+		final InjectableContext tenantContext = Arc.container().getActiveContext(TenantScoped.class);
+		if (tenantContext != null) {
+			log.debugf("handleRoot %s", tenantContext.getState());
+			// TODO research String injection/bean lookup
+			String tenantId = Arc.container().instance(Object.class, TenantId.LITERAL).get().toString();
+			String tenantColor = getTenantProperty("color", "red").toString();
 
-			final InjectableContext tenantContext = Arc.container().getActiveContext(TenantScoped.class);
-			if (tenantContext != null) {
-				// TODO research String injection/bean lookup
-				String tenantId = Arc.container().instance(Object.class, TenantId.LITERAL).get().toString();
-				String tenantColor = getTenantProperty("color", "red").toString();
-
-				template("tenant.html", "/" + tenantId + "/", (t, c) -> {
-					t = t.replace("@@USER@@", user);
-					t = t.replace("@@TENANT_ID@@", tenantId);
-					t = t.replace("@@TENANT_COLOR@@", tenantColor);
-					return t;
-				}).handle(context);
-			} else {
-				template("index.html", "/", (t, c) -> {
-					t = t.replace("@@USER@@", user);
-					return t;
-				}).handle(context);
-			}
-		}, true);
+			template("tenant.html", "/" + tenantId + "/", (t, c) -> {
+				t = t.replace("@@USER@@", user);
+				t = t.replace("@@TENANT_ID@@", tenantId);
+				t = t.replace("@@TENANT_COLOR@@", tenantColor);
+				return t;
+			}).handle(context);
+		} else {
+			template("index.html", "/", (t, c) -> {
+				t = t.replace("@@USER@@", user);
+				return t;
+			}).handle(context);
+		}
 
 	}
 

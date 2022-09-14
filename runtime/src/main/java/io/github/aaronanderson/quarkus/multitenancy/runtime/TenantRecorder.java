@@ -56,7 +56,8 @@ public class TenantRecorder {
 			throw new IllegalStateException("TenantLoader implementation is unavailable");
 		}
 		Handler<RoutingContext> handler = new TenantResolverHandler(tenantResolver, tenantLoader, tenantResolverCache);
-		return new BlockingHandlerDecorator(handler, true);
+		//return new BlockingHandlerDecorator(handler, true);
+		return handler;
 	}
 
 	public Handler<RoutingContext> tenantPathHandler() {

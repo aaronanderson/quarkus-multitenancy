@@ -68,24 +68,18 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 
 			if (!tenantContext.isActive()) {
 				tenantContext.activate();
-				log.debugf("Activate Called %s", tenantContext.getState());
-				// TODO redirects may happen on a different thread
-				ctx.addEndHandler(v -> {
-
-					// ctx.next();
-					if (tenantContext.isActive()) {
-						log.debugf("End Handler Terminate called %s", tenantContext.getState());
-						tenantContext.terminate();
-					}
-				});
+				log.debugf("activate %s", tenantContext.getState());
 				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
 				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
+				ctx.request().pause();
+				ctx.next();
+				ctx.request().resume();
+				log.debugf("terminate %s", tenantContext.getState());
+				tenantContext.terminate();
+				return;
 			}
-//			} else {
-//				ctx.next();
 		}
 		ctx.next();
-		// }, true).handle(context);
 
 	}
 
