@@ -79,7 +79,7 @@ public class TenantProvider {
 	@Dependent
 	@Produces
 	@TenantId
-	public Object produceTenantId() {
+	public String produceTenantId() {
 		return this.tenantId;
 	}
 }

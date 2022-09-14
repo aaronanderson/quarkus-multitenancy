@@ -61,10 +61,7 @@ public class SPARouter {
 
 	}
 
-	// private void handleRoot(RoutingContext context) {
 	private void handleRoot(RoutingContext context) {
-		// TODO see why context propagation is not working without BlockingHandlerDecorator which places the handler back on the original event loop
-		// return new BlockingHandlerDecorator(
 		QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
 		final String user = quser.principal().getString("username");
 
@@ -72,7 +69,7 @@ public class SPARouter {
 		if (tenantContext != null) {
 			log.debugf("handleRoot %s", tenantContext.getState());
 			// TODO research String injection/bean lookup
-			String tenantId = Arc.container().instance(Object.class, TenantId.LITERAL).get().toString();
+			String tenantId = Arc.container().instance(String.class, TenantId.LITERAL).get();
 			String tenantColor = getTenantProperty("color", "red").toString();
 
 			template("tenant.html", "/" + tenantId + "/", (t, c) -> {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A [Quarkus](https://quarkus.io/) extension that provides extensible [multitenancy](https://en.wikipedia.org/wiki/Multitenancy) support.  Quarkus already has some multitenancy support via the [OIDC extension](https://quarkus.io/guides/security-openid-connect-multitenancy) This extension provides top level multitenancy support that other Quarkus extensions or web-based applications can utilize to tailor individual application tenant security and settings.
+A [Quarkus](https://quarkus.io/) extension that provides extensible [multitenancy](https://en.wikipedia.org/wiki/Multitenancy) support.  Quarkus already has some multitenancy support via the [OIDC extension](https://quarkus.io/guides/security-openid-connect-multitenancy). This extension provides high level multitenancy support that other Quarkus extensions or web-based applications can utilize to tailor individual application tenant security and settings.
 
 ## Features
 The Quarkus Multitenancy extension provides the following features:
@@ -27,5 +27,5 @@ The Quarkus Multitenancy extension provides the following features:
 
 1. Create an [Tenant Loader](runtime/src/main/java/io/github/aaronanderson/quarkus/multitenancy/runtime/TenantLoader.java) implementation that will retrieve individual tenant configuration details based on the resolved tenant ID.
 
-1. Review and run the [example appliation](example) for insight on how to setup tenant routing and utilize the @TenantScope CDI scope.
+1. Review and run the [example appliation](example) for insight on how to setup tenant routing and utilize the @TenantScope CDI scope. Login with any user ID/password combination as authentication is not enforced. 
 
