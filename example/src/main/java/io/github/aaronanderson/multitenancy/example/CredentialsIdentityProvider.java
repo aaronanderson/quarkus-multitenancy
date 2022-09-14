@@ -14,7 +14,7 @@ import io.smallrye.mutiny.Uni;
  * Trust all basic auth
  */
 @ApplicationScoped
-public class IdentityProviderImpl implements IdentityProvider<UsernamePasswordAuthenticationRequest> {
+public class CredentialsIdentityProvider implements IdentityProvider<UsernamePasswordAuthenticationRequest> {
 
 	@Override
 	public Class<UsernamePasswordAuthenticationRequest> getRequestType() {

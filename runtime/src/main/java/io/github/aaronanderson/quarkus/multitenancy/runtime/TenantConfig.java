@@ -18,6 +18,9 @@ import javax.inject.Qualifier;
 @Target({ METHOD, FIELD, PARAMETER, TYPE })
 public @interface TenantConfig {
 
+	public static final String CONTEXT_TENANT_ID = "io.github.aaronanderson.quarkus.multitenancy.tenant-id";
+	public static final String CONTEXT_TENANT = "io.github.aaronanderson.quarkus.multitenancy.tenant";
+
 	public static AnnotationLiteral<TenantConfig> LITERAL = new AnnotationLiteral<TenantConfig>() {
 	};
 }

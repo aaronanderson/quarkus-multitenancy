@@ -1,5 +1,6 @@
 package io.github.aaronanderson.quarkus.multitenancy.runtime;
 
+import static io.github.aaronanderson.quarkus.multitenancy.runtime.TenantConfig.CONTEXT_TENANT_ID;
 import static io.vertx.core.http.HttpHeaders.LOCATION;
 
 import org.jboss.logging.Logger;
@@ -24,7 +25,7 @@ public class TenantPathHandler implements Handler<RoutingContext> {
 		log.debugf("handle %s", ctx.request().path());
 
 		if (!ctx.get(REQUEST_ROUTED, false)) {
-			String tenantId = ctx.get(TenantResolverHandler.CONTEXT_TENANT_ID);
+			String tenantId = ctx.get(CONTEXT_TENANT_ID);
 			if (tenantId != null) {
 				String tenantPath = "/" + tenantId;
 				String path = ctx.request().path();

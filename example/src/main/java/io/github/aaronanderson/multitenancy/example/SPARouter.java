@@ -54,8 +54,8 @@ public class SPARouter {
 		router.route("/access-denied").handler(accessDenied);
 		router.errorHandler(401, accessDenied);
 
-		router.route("/mfa_login").handler(this::handleLogin);
-		router.route("/mfa_logout").handler(this::handleLogout);
+		router.route("/login").handler(this::handleLogin);
+		router.route("/logout").handler(this::handleLogout);
 
 		router.route("/").handler(this::handleRoot);
 
@@ -116,8 +116,8 @@ public class SPARouter {
 
 	private Object getTenantProperty(String name, String defaultValue) {
 		// Arc.container().instance() does not pass qualifiers to the producer's InjectionPoint parameter. Perhaps a defect.
-		InjectableInstance<Object> colorInstance = Arc.container().select(Object.class, new TenantProperty.Literal("color"));
-		Object color = colorInstance.get();
+		InjectableInstance<String> colorInstance = Arc.container().select(String.class, new TenantProperty.Literal("color"));
+		String color = colorInstance.get();
 		if (color != null) {
 			colorInstance.destroy(color);
 		}

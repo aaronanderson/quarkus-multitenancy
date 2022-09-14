@@ -21,13 +21,47 @@ public class TenantProvider {
 	@Dependent
 	@Produces
 	@TenantProperty
-	public Object produceTenantProperty(InjectionPoint injectionpoint) {
+	public Object produceObjectTenantProperty(InjectionPoint injectionpoint) {
 		for (Annotation a : injectionpoint.getQualifiers()) {
 			if (a.annotationType().equals(TenantProperty.class)) {
 				TenantProperty property = (TenantProperty) a;
 				Object value = this.tenantConfig.get(property.name());
 				if (value == null && !TenantProperty.UNCONFIGURED_VALUE.equals(property.defaultValue())) {
 					value = property.defaultValue();
+				}
+				return value;
+			}
+		}
+		return null;
+	}
+
+	@Dependent
+	@Produces
+	@TenantProperty
+	public String produceStringTenantProperty(InjectionPoint injectionpoint) {
+		for (Annotation a : injectionpoint.getQualifiers()) {
+			if (a.annotationType().equals(TenantProperty.class)) {
+				TenantProperty property = (TenantProperty) a;
+				String value = (String) this.tenantConfig.get(property.name());
+				if (value == null && !TenantProperty.UNCONFIGURED_VALUE.equals(property.defaultValue())) {
+					value = property.defaultValue();
+				}
+				return value;
+			}
+		}
+		return null;
+	}
+
+	@Dependent
+	@Produces
+	@TenantProperty
+	public Boolean produceBooleanTenantProperty(InjectionPoint injectionpoint) {
+		for (Annotation a : injectionpoint.getQualifiers()) {
+			if (a.annotationType().equals(TenantProperty.class)) {
+				TenantProperty property = (TenantProperty) a;
+				Boolean value = (Boolean) this.tenantConfig.get(property.name());
+				if (value == null && !TenantProperty.UNCONFIGURED_VALUE.equals(property.defaultValue())) {
+					value = Boolean.valueOf(property.defaultValue());
 				}
 				return value;
 			}

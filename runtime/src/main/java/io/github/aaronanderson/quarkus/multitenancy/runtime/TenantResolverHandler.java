@@ -1,5 +1,8 @@
 package io.github.aaronanderson.quarkus.multitenancy.runtime;
 
+import static io.github.aaronanderson.quarkus.multitenancy.runtime.TenantConfig.CONTEXT_TENANT;
+import static io.github.aaronanderson.quarkus.multitenancy.runtime.TenantConfig.CONTEXT_TENANT_ID;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +19,8 @@ import io.quarkus.arc.InjectableContext;
 import io.quarkus.arc.InstanceHandle;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 
 public class TenantResolverHandler implements Handler<RoutingContext> {
-
-	public static final String CONTEXT_TENANT_ID = "io.github.aaronanderson.quarkus.multitenancy.tenant-id";
-	public static final String CONTEXT_TENANT = "io.github.aaronanderson.quarkus.multitenancy.tenant";
 
 	private static final Logger log = Logger.getLogger(TenantResolverHandler.class);
 
@@ -55,6 +54,9 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 					log.debugf("Loaded details for tenant ID %s", tenantId);
 					ctx.put(CONTEXT_TENANT_ID, tenantId);
 					ctx.put(CONTEXT_TENANT, tenantConfig);
+				} else {
+					tenantId = null;
+					tenantConfig = null;
 				}
 			}
 		}
