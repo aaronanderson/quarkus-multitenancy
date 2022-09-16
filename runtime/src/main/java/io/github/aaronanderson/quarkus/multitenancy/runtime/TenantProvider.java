@@ -1,6 +1,7 @@
 package io.github.aaronanderson.quarkus.multitenancy.runtime;
 
 import java.lang.annotation.Annotation;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.enterprise.context.Dependent;
@@ -11,7 +12,7 @@ import javax.enterprise.inject.spi.InjectionPoint;
 public class TenantProvider {
 
 	private String tenantId;
-	private Map<String, Object> tenantConfig;
+	private Map<String, Object> tenantConfig = new HashMap<>();
 
 	void setTenantConfig(String tenantId, Map<String, Object> tenantConfig) {
 		this.tenantId = tenantId;

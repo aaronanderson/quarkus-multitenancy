@@ -10,6 +10,7 @@ import java.util.Optional;
 
 import javax.enterprise.context.ContextException;
 
+import org.eclipse.microprofile.context.ThreadContext;
 import org.jboss.logging.Logger;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -39,49 +40,58 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 		// Execute in a blocking decerator to ensure entire request is served on the same event loop thread. TODO investigate context propagation
 		// new BlockingHandlerDecorator(ctx -> {
 		// Rerouted requests will already have the RoutingCountext data set and an active CDI TenantScope TenantContext
-
 		log.debugf("handle %s", ctx.request().path());
-		String tenantId = ctx.get(CONTEXT_TENANT_ID);
-		Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
-		if (tenantConfig == null) {
-			Optional<String> resolvedTenantId = tenantResolver.resolve(ctx);
-			if (resolvedTenantId.isPresent()) {
-				tenantId = resolvedTenantId.get();
-				tenantConfig = tenantResolverCache.get(tenantId, k -> {
-					return tenantLoader.load(k);
-				});
-				if (tenantConfig != null && !tenantConfig.isEmpty()) {
-					log.debugf("Loaded details for tenant ID %s", tenantId);
-					ctx.put(CONTEXT_TENANT_ID, tenantId);
-					ctx.put(CONTEXT_TENANT, tenantConfig);
-				} else {
-					tenantId = null;
-					tenantConfig = null;
+		ThreadContext threadContext = Arc.container().instance(ThreadContext.class).get();
+		try {
+			threadContext.contextualCallable(() -> {
+
+				String tenantId = ctx.get(CONTEXT_TENANT_ID);
+				Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
+				if (tenantConfig == null) {
+					Optional<String> resolvedTenantId = tenantResolver.resolve(ctx);
+					if (resolvedTenantId.isPresent()) {
+						tenantId = resolvedTenantId.get();
+						tenantConfig = tenantResolverCache.get(tenantId, k -> {
+							return tenantLoader.load(k);
+						});
+						if (tenantConfig != null && !tenantConfig.isEmpty()) {
+							log.debugf("Loaded details for tenant ID %s", tenantId);
+							ctx.put(CONTEXT_TENANT_ID, tenantId);
+							ctx.put(CONTEXT_TENANT, tenantConfig);
+						} else {
+							tenantId = null;
+							tenantConfig = null;
+						}
+					}
 				}
-			}
-		}
 
-		if (tenantId != null && tenantConfig != null) {
-			List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
-			if (contexts.size() != 1) {
-				throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
-			}
-			TenantContext tenantContext = (TenantContext) contexts.get(0);
+				if (tenantId != null && tenantConfig != null) {
+					List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+					if (contexts.size() != 1) {
+						throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+					}
+					TenantContext tenantContext = (TenantContext) contexts.get(0);
 
-			if (!tenantContext.isActive()) {
-				tenantContext.activate();
-				log.debugf("activate %s", tenantContext.getState());
-				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
-				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
-				ctx.request().pause();				
+					if (!tenantContext.isActive()) {
+						tenantContext.activate();
+						log.debugf("activate %s", tenantContext.getState());
+						InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
+						tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
+						ctx.request().pause();
+						ctx.next();
+						log.debugf("terminate %s", tenantContext.getState());
+						tenantContext.terminate();
+						ctx.request().resume();
+						return null;
+					}
+				}
 				ctx.next();
-				log.debugf("terminate %s", tenantContext.getState());
-				tenantContext.terminate();
-				ctx.request().resume();
-				return;
-			}
+
+				return null;
+			}).call();
+		} catch (Exception e) {
+			log.errorf(e, "");
 		}
-		ctx.next();
 
 	}
 
