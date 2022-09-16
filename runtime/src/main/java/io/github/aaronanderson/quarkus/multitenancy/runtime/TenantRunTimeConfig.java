@@ -20,7 +20,7 @@ public class TenantRunTimeConfig {
 	ResolverMode resolverMode;
 
 	/**
-	* If base path is used to resolve tenants automatically reroute request to the root path
+	* If base path is used to resolve tenants automatically reroute requests to the root path
 	*/
 	@ConfigItem(name = "reroute-paths", defaultValue = "true")
 	public boolean reroutePaths;

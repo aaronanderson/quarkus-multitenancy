@@ -38,8 +38,6 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 
 	@Override
 	public void handle(RoutingContext ctx) {
-		// Execute in a blocking decerator to ensure entire request is served on the same event loop thread. TODO investigate context propagation
-		// new BlockingHandlerDecorator(ctx -> {
 		// Rerouted requests will already have the RoutingCountext data set and an active CDI TenantScope TenantContext
 		log.debugf("handle %s", ctx.request().path());
 
@@ -75,8 +73,8 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 				log.debugf("activate %s", tenantContext.getState());
 				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
 				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
-				
-				//force end handler to run on the current Vert.x thread the context was activated on.
+
+				// force the end handler to run on the current Vert.x thread the tenant context was activated on.
 				ctx.addEndHandler(v -> ctx.vertx().runOnContext(v2 -> {
 					TenantContext termContext = (TenantContext) Arc.container().getActiveContext(TenantScoped.class);
 					if (termContext != null) {

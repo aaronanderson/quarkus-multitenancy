@@ -26,11 +26,7 @@ public class TenantProvider {
 		for (Annotation a : injectionpoint.getQualifiers()) {
 			if (a.annotationType().equals(TenantProperty.class)) {
 				TenantProperty property = (TenantProperty) a;
-				Object value = this.tenantConfig.get(property.name());
-				if (value == null && !TenantProperty.UNCONFIGURED_VALUE.equals(property.defaultValue())) {
-					value = property.defaultValue();
-				}
-				return value;
+				return this.tenantConfig.get(property.name());
 			}
 		}
 		return null;
