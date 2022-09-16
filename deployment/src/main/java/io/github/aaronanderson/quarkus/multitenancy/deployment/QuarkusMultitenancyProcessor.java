@@ -22,6 +22,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
 
 class QuarkusMultitenancyProcessor {
@@ -39,12 +40,6 @@ class QuarkusMultitenancyProcessor {
 		builder.addBeanClass(TenantProvider.class);
 		additionalBeans.produce(builder.build());
 	}
-
-//	@BuildStep
-//	public void markUnremovable(BuildProducer<UnremovableBeanBuildItem> unremovable) {
-//		unremovable.produce(new UnremovableBeanBuildItem(new UnremovableBeanBuildItem.BeanTypeExclusion(DotName.createSimple((DefaultTenantResolver.class.getName())))));
-//		unremovable.produce(new UnremovableBeanBuildItem(new UnremovableBeanBuildItem.BeanTypeExclusion(DotName.createSimple((DefaultTenantLoader.class.getName())))));
-//	}
 
 	@BuildStep
 	@Record(ExecutionTime.STATIC_INIT)

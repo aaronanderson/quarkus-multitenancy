@@ -73,11 +73,11 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 				log.debugf("activate %s", tenantContext.getState());
 				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
 				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
-				ctx.request().pause();
+				ctx.request().pause();				
 				ctx.next();
-				ctx.request().resume();
 				log.debugf("terminate %s", tenantContext.getState());
 				tenantContext.terminate();
+				ctx.request().resume();
 				return;
 			}
 		}

@@ -46,12 +46,11 @@ public class TrustedIdentityProvider implements IdentityProvider<TrustedAuthenti
 	public Uni<SecurityIdentity> authenticate(TrustedAuthenticationRequest request, AuthenticationRequestContext context) {
 		String subject = request.getPrincipal();
 
-//		Disable validation until Vert.x context propation/lifecycle issue is resolved
-//		String tenantId = currentTenantId();
+		String tenantId = currentTenantId();
 
-//		log.infof("TrustedIdentityProvider authenticate: %s - %s", subject, tenantId);
+		log.infof("TrustedIdentityProvider authenticate: %s - %s", subject, tenantId);
 
-		
+//		Disable validation until Vert.x context propation/lifecycle issue is resolved	
 //		String[] parts = subject.split("@");
 //		if (parts.length > 1 && !parts[1].equals(tenantId)) {
 //			throw new AuthenticationFailedException(String.format("Subject tenant %s does not match requested tenant %s", parts[1], tenantId));
