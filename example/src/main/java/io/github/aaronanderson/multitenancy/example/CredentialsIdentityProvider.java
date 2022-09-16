@@ -43,12 +43,9 @@ public class CredentialsIdentityProvider implements IdentityProvider<UsernamePas
 
 	@Override
 	public Uni<SecurityIdentity> authenticate(UsernamePasswordAuthenticationRequest request, AuthenticationRequestContext context) {
-		//TODO Due to asynchronous Mutiny handling the TenantResolverHandler is terminating the tenant scope before the identity is authenticating. Using addEndhandler runs on another worker thread so that will not work.
-		//Research how to invoke the context termination after the Vert.x end is called. See if Context Propagation is applicable https://download.eclipse.org/microprofile/microprofile-context-propagation-1.2/apidocs/index.html?org/eclipse/microprofile/context/spi/ContextManagerExtension.html
-		String subject = subject(request.getUsername());		
-		//String subject = request.getUsername();
+		String subject = subject(request.getUsername());
 		return Uni.createFrom().item(() -> {
-			log.infof("CredentialsIdentityProvider authenticate: %s", subject);
+			log.debugf("CredentialsIdentityProvider authenticate: %s", subject);
 			QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder();
 			builder.setPrincipal(new QuarkusPrincipal(subject));
 			return builder.build();

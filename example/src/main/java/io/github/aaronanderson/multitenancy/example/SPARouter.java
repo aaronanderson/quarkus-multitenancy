@@ -67,7 +67,7 @@ public class SPARouter {
 
 	private void handleRoot(RoutingContext context) {
 		String tenantId = getTenantId();
-		log.infof("handleRoot: %s", tenantId);
+		log.debugf("handleRoot: %s", tenantId);
 		if (tenantId != null) {
 			context.reroute("/home");
 		} else {
@@ -84,7 +84,7 @@ public class SPARouter {
 		QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
 		final String user = quser.principal().getString("username");
 		String tenantId = getTenantId();
-		log.infof("handleHome: %s", tenantId);
+		log.debugf("handleHome: %s", tenantId);
 		if (tenantId != null) {
 			String tenantColor = getTenantProperty("color", "red");
 			template("tenant.html", "/" + tenantId + "/", (t, c) -> {
@@ -101,7 +101,7 @@ public class SPARouter {
 
 	private void handleLogin(RoutingContext context) {
 		String tenantId = getTenantId();
-		log.infof("handleLogin: %s", tenantId);
+		log.debugf("handleLogin: %s", tenantId);
 		if (tenantId != null) {
 			template("login.html", "/" + tenantId + "/", null).handle(context);
 		} else {
@@ -112,7 +112,7 @@ public class SPARouter {
 
 	private void handleLogout(RoutingContext context) {
 		String tenantId = getTenantId();
-		log.infof("handleLogout: %s", tenantId);
+		log.debugf("handleLogout: %s", tenantId);
 		template("logout.html", "/", null).handle(context);
 	}
 

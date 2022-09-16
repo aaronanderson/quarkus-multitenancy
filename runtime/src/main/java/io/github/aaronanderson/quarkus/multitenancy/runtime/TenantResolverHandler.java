@@ -42,68 +42,60 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 		// new BlockingHandlerDecorator(ctx -> {
 		// Rerouted requests will already have the RoutingCountext data set and an active CDI TenantScope TenantContext
 		log.debugf("handle %s", ctx.request().path());
-		ThreadContext threadContext = Arc.container().instance(ThreadContext.class).get();
-		try {
-			Runnable terminateHook = threadContext.contextualRunnable(() -> {
-				TenantContext tenantContext = (TenantContext) Arc.container().getActiveContext(TenantScoped.class);
-				if (tenantContext != null) {
-					log.debugf("terminateHook - terminating active context %s", tenantContext.getState());
-					tenantContext.terminate();
+
+		String tenantId = ctx.get(CONTEXT_TENANT_ID);
+		Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
+		if (tenantConfig == null) {
+			Optional<String> resolvedTenantId = tenantResolver.resolve(ctx);
+			if (resolvedTenantId.isPresent()) {
+				tenantId = resolvedTenantId.get();
+				tenantConfig = tenantResolverCache.get(tenantId, k -> {
+					return tenantLoader.load(k);
+				});
+				if (tenantConfig != null && !tenantConfig.isEmpty()) {
+					log.debugf("Loaded details for tenant ID %s", tenantId);
+					ctx.put(CONTEXT_TENANT_ID, tenantId);
+					ctx.put(CONTEXT_TENANT, tenantConfig);
 				} else {
-					log.debugf("terminateHook - not active");
+					tenantId = null;
+					tenantConfig = null;
 				}
-			});
-
-			threadContext.contextualRunnable(() -> {
-
-				String tenantId = ctx.get(CONTEXT_TENANT_ID);
-				Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
-				if (tenantConfig == null) {
-					Optional<String> resolvedTenantId = tenantResolver.resolve(ctx);
-					if (resolvedTenantId.isPresent()) {
-						tenantId = resolvedTenantId.get();
-						tenantConfig = tenantResolverCache.get(tenantId, k -> {
-							return tenantLoader.load(k);
-						});
-						if (tenantConfig != null && !tenantConfig.isEmpty()) {
-							log.debugf("Loaded details for tenant ID %s", tenantId);
-							ctx.put(CONTEXT_TENANT_ID, tenantId);
-							ctx.put(CONTEXT_TENANT, tenantConfig);
-						} else {
-							tenantId = null;
-							tenantConfig = null;
-						}
-					}
-				}
-
-				if (tenantId != null && tenantConfig != null) {
-					List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
-					if (contexts.size() != 1) {
-						throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
-					}
-					TenantContext tenantContext = (TenantContext) contexts.get(0);
-
-					if (!tenantContext.isActive()) {
-						tenantContext.activate();
-						log.debugf("activate %s", tenantContext.getState());
-						InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
-						tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
-						ctx.addEndHandler(v -> ctx.vertx().runOnContext(v2 -> terminateHook.run()));
-						ctx.request().pause();
-						ctx.next();
-						// log.debugf("terminate %s", tenantContext.getState());
-						// tenantContext.terminate();
-						ctx.request().resume();
-						return;
-					}
-				}
-				ctx.next();
-
-			}).run();
-		} catch (Exception e) {
-			log.errorf(e, "");
+			}
 		}
 
+		if (tenantId != null && tenantConfig != null) {
+			List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+			if (contexts.size() != 1) {
+				throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+			}
+			TenantContext tenantContext = (TenantContext) contexts.get(0);
+
+			if (!tenantContext.isActive()) {
+				tenantContext.activate();
+				log.debugf("activate %s", tenantContext.getState());
+				InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
+				tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
+				
+				//force end handler to run on the current Vert.x thread the context was activated on.
+				ctx.addEndHandler(v -> ctx.vertx().runOnContext(v2 -> {
+					TenantContext termContext = (TenantContext) Arc.container().getActiveContext(TenantScoped.class);
+					if (termContext != null) {
+						log.debugf("terminateHook - terminating active context %s", termContext.getState());
+						termContext.terminate();
+					} else {
+						log.debugf("terminateHook - not active");
+					}
+
+				}));
+				ctx.request().pause();
+				ctx.next();
+				// log.debugf("terminate %s", tenantContext.getState());
+				// tenantContext.terminate();
+				ctx.request().resume();
+				return;
+			}
+		}
+		ctx.next();
 	}
 
 	static enum ResolverMode {

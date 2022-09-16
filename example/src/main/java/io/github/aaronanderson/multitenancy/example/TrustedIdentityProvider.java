@@ -33,7 +33,7 @@ public class TrustedIdentityProvider implements IdentityProvider<TrustedAuthenti
 		try {
 			return tenantId.get();
 		} catch (ContextNotActiveException ce) {
-			return "";
+			return null;
 		}
 	}
 
@@ -48,13 +48,13 @@ public class TrustedIdentityProvider implements IdentityProvider<TrustedAuthenti
 
 		String tenantId = currentTenantId();
 
-		log.infof("TrustedIdentityProvider authenticate: %s - %s", subject, tenantId);
+		log.debugf("TrustedIdentityProvider authenticate: %s - %s", subject, tenantId);
 
-//		Disable validation until Vert.x context propation/lifecycle issue is resolved	
-//		String[] parts = subject.split("@");
-//		if (parts.length > 1 && !parts[1].equals(tenantId)) {
-//			throw new AuthenticationFailedException(String.format("Subject tenant %s does not match requested tenant %s", parts[1], tenantId));
-//		}
+		String[] parts = subject.split("@");
+		if (tenantId != null && parts.length > 1 && !parts[parts.length - 1].equals(tenantId)) {
+			log.debugf("Cross tenant access attempted, rejecting  %s - %s", parts[1], tenantId);
+			throw new AuthenticationFailedException(String.format("Subject tenant %s does not match requested tenant %s", parts[1], tenantId));
+		}
 		QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder();
 		builder.setPrincipal(new QuarkusPrincipal(subject));
 		return Uni.createFrom().item(builder.build());

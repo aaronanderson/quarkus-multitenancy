@@ -29,6 +29,6 @@ The Quarkus Multitenancy extension provides the following features:
 
 1. Review and run the [example appliation](example) for insight on how to setup tenant routing and utilize the @TenantScope CDI scope. Login with any user ID/password combination as authentication is not enforced. 
 
-## Known Issues
-Currently the custom TenantScope CDI scope is activated/terminated inbetween Vert.x pause() and resume() invocations. This works fine for simple Vert.x based routing. However, the scope does not get propagated to Vert.x blocking threads and the scope is terminated before the Mutiny async Unis are completed. The TenantContextProvider context propagation provider is functioning but it needs to be troubleshooted further.
+## Further Research
+The tenant CDI scope context is being set on a Quarkus Vert.x  based filter. The filter next() invocation is non-blocking so it is not possible to determine when the end of the request is finished in order to terminate the scope context. A Vert.x EndHandler is being used to terminate the context but if it is not invoked or invoked on the wrong thread the stale active contect will remain in a threadlocal and corrupt future requests. A more robust means of performing the tenant scope handling should be investigated.
 
