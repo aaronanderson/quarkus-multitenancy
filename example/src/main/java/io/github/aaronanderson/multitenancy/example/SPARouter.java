@@ -9,6 +9,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.ContextNotActiveException;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
@@ -24,6 +25,7 @@ import io.quarkus.arc.InjectableContext;
 import io.quarkus.arc.InjectableInstance;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
+import io.quarkus.vertx.http.runtime.filters.accesslog.LogFileHeaderGenerator;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerResponse;
@@ -49,6 +51,7 @@ public class SPARouter {
 		Handler<RoutingContext> notFound = template("not-found.html", "/", null);
 		router.route("/not-found").handler(notFound);
 		router.errorHandler(404, notFound);
+		router.route("/favicon.ico").handler(notFound);
 
 		Handler<RoutingContext> accessDenied = template("access-denied.html", "/", null);
 		router.route("/access-denied").handler(accessDenied);
@@ -58,20 +61,32 @@ public class SPARouter {
 		router.route("/logout").handler(this::handleLogout);
 
 		router.route("/").handler(this::handleRoot);
+		router.route("/home").handler(this::handleHome);
 
 	}
 
 	private void handleRoot(RoutingContext context) {
+		String tenantId = getTenantId();
+		log.infof("handleRoot: %s", tenantId);
+		if (tenantId != null) {
+			context.reroute("/home");
+		} else {
+			QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
+			final String user = quser.principal().getString("username");
+			template("index.html", "/", (t, c) -> {
+				t = t.replace("@@USER@@", user);
+				return t;
+			}).handle(context);
+		}
+	}
+
+	private void handleHome(RoutingContext context) {
 		QuarkusHttpUser quser = (QuarkusHttpUser) context.user();
 		final String user = quser.principal().getString("username");
-
-		final InjectableContext tenantContext = Arc.container().getActiveContext(TenantScoped.class);
-		if (tenantContext != null) {
-			log.debugf("handleRoot %s", tenantContext.getState());
-			// TODO research String injection/bean lookup
-			String tenantId = Arc.container().instance(String.class, TenantId.LITERAL).get();
-			String tenantColor = getTenantProperty("color", "red").toString();
-
+		String tenantId = getTenantId();
+		log.infof("handleHome: %s", tenantId);
+		if (tenantId != null) {
+			String tenantColor = getTenantProperty("color", "red");
 			template("tenant.html", "/" + tenantId + "/", (t, c) -> {
 				t = t.replace("@@USER@@", user);
 				t = t.replace("@@TENANT_ID@@", tenantId);
@@ -79,19 +94,25 @@ public class SPARouter {
 				return t;
 			}).handle(context);
 		} else {
-			template("index.html", "/", (t, c) -> {
-				t = t.replace("@@USER@@", user);
-				return t;
-			}).handle(context);
+			context.reroute("/access-denied");
 		}
 
 	}
 
 	private void handleLogin(RoutingContext context) {
-		template("login.html", "/", null).handle(context);
+		String tenantId = getTenantId();
+		log.infof("handleLogin: %s", tenantId);
+		if (tenantId != null) {
+			template("login.html", "/" + tenantId + "/", null).handle(context);
+		} else {
+			template("login.html", "/", null).handle(context);
+		}
+
 	}
 
 	private void handleLogout(RoutingContext context) {
+		String tenantId = getTenantId();
+		log.infof("handleLogout: %s", tenantId);
 		template("logout.html", "/", null).handle(context);
 	}
 
@@ -111,7 +132,15 @@ public class SPARouter {
 		}).await().indefinitely();
 	}
 
-	private Object getTenantProperty(String name, String defaultValue) {
+	private String getTenantId() {
+		try {
+			return Arc.container().instance(String.class, TenantId.LITERAL).get();
+		} catch (ContextNotActiveException ce) {
+			return null;
+		}
+	}
+
+	private String getTenantProperty(String name, String defaultValue) {
 		// Arc.container().instance() does not pass qualifiers to the producer's InjectionPoint parameter. Perhaps a defect.
 		InjectableInstance<String> colorInstance = Arc.container().select(String.class, new TenantProperty.Literal("color"));
 		String color = colorInstance.get();
