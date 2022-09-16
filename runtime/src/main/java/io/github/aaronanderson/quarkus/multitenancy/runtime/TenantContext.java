@@ -114,7 +114,9 @@ public class TenantContext implements ManagedContext {
 
 	@Override
 	public void deactivate() {
-		log.debugf("deactivate %s", currentContext.get());
+		TenantContextState state = currentContext.get();
+		log.debugf("deactivate %s", state);
+		state.isValid = false;
 		currentContext.remove();
 	}
 

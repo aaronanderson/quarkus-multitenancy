@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
 import javax.enterprise.context.ContextException;
 
@@ -43,7 +44,17 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 		log.debugf("handle %s", ctx.request().path());
 		ThreadContext threadContext = Arc.container().instance(ThreadContext.class).get();
 		try {
-			threadContext.contextualCallable(() -> {
+			Runnable terminateHook = threadContext.contextualRunnable(() -> {
+				TenantContext tenantContext = (TenantContext) Arc.container().getActiveContext(TenantScoped.class);
+				if (tenantContext != null) {
+					log.debugf("terminateHook - terminating active context %s", tenantContext.getState());
+					tenantContext.terminate();
+				} else {
+					log.debugf("terminateHook - not active");
+				}
+			});
+
+			threadContext.contextualRunnable(() -> {
 
 				String tenantId = ctx.get(CONTEXT_TENANT_ID);
 				Map<String, Object> tenantConfig = ctx.get(CONTEXT_TENANT);
@@ -77,18 +88,18 @@ public class TenantResolverHandler implements Handler<RoutingContext> {
 						log.debugf("activate %s", tenantContext.getState());
 						InstanceHandle<TenantProvider> tenantProvider = Arc.container().instance(TenantProvider.class);
 						tenantProvider.get().setTenantConfig(tenantId, tenantConfig);
+						ctx.addEndHandler(v -> ctx.vertx().runOnContext(v2 -> terminateHook.run()));
 						ctx.request().pause();
 						ctx.next();
-						log.debugf("terminate %s", tenantContext.getState());
-						tenantContext.terminate();
+						// log.debugf("terminate %s", tenantContext.getState());
+						// tenantContext.terminate();
 						ctx.request().resume();
-						return null;
+						return;
 					}
 				}
 				ctx.next();
 
-				return null;
-			}).call();
+			}).run();
 		} catch (Exception e) {
 			log.errorf(e, "");
 		}

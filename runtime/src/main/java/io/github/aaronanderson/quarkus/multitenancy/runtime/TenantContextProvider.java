@@ -32,8 +32,8 @@ public class TenantContextProvider implements ThreadContextProvider {
 			return null;
 		}
 
-		TenantContext context = (TenantContext) container.getActiveContext(TenantScoped.class);
-		if (context != null) {
+		TenantContext context = currentTenantContext();
+		if (context.isActive()) {
 			TenantContextState state = (TenantContextState) context.getState();
 			log.debugf("currentContext - %s - %s", state, props);
 			return new TenantContextSnapshot(state);
@@ -51,12 +51,14 @@ public class TenantContextProvider implements ThreadContextProvider {
 			return null;
 		}
 
-		TenantContext context = (TenantContext) container.getActiveContext(TenantScoped.class);
-
-		if (context != null) {
-			log.debugf("clearedContext - %s -%s", context.getState(), props);
+		TenantContext context = currentTenantContext();
+		if (context.isActive()) {
+			log.debugf("clearedContext - deactivating active context %s -%s", context.getState(), props);
+			context.deactivate();
+		} else {
+			log.debugf("clearedContext - not active");
 		}
-		log.debugf("clearedContext - not active");
+
 		return null;
 	}
 
@@ -67,10 +69,10 @@ public class TenantContextProvider implements ThreadContextProvider {
 
 	private static final class TenantContextSnapshot implements ThreadContextSnapshot {
 
-		private final TenantContextState state;
+		private final TenantContextState snapshotState;
 
 		public TenantContextSnapshot(TenantContextState state) {
-			this.state = state;
+			this.snapshotState = state;
 		}
 
 		@Override
@@ -79,53 +81,63 @@ public class TenantContextProvider implements ThreadContextProvider {
 			if (container == null) {
 				return NOOP;
 			}
-			log.debugf("Begining new thread context snapshot - %s %s", state);
+			log.debugf("begining new thread context snapshot - %s", snapshotState);
 
-			List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
-			if (contexts.size() != 1) {
-				throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+			TenantContext tenantContext = currentTenantContext();
+			TenantContextState existingState = (TenantContextState) tenantContext.getStateIfActive();
+			TenantContextState targetState = snapshotState != null && snapshotState.isValid() ? snapshotState : null;
+
+			if (existingState != null) {
+				if (targetState != null) {
+					log.debugf("Propagatated to active state %s - %s", tenantContext, targetState);
+					tenantContext.activate(targetState);
+				} else {
+					log.debugf("Propagatated state is invalid, deactivating  %s", tenantContext);
+					tenantContext.deactivate();
+				}
+				return new TenantContextController(existingState);
+			} else {
+				if (targetState != null) {
+					log.debugf("Propagatated to inactive state %s - %s", tenantContext, targetState);
+					tenantContext.activate(targetState);
+				} else {
+					log.debugf("Propagatated state is invalid, context inactive  %s", tenantContext);
+				}
+				return NOOP;
 			}
-			TenantContext tenantContext = (TenantContext) contexts.get(0);
-			TenantContextState priorState = (TenantContextState) tenantContext.getStateIfActive();
-			TenantContextState targetState = state != null && state.isValid() ? state : null;
-
-			if (priorState != null) {
-				log.debugf("Propagating current active state %s -  %s", targetState, priorState);
-				tenantContext.activate(targetState);
-				return new TenantContextController(tenantContext, priorState);
-			}
-			log.debugf("No prior state, not propagating %s", targetState);
-			return NOOP;
-
 		}
 
 	}
 
+	private static TenantContext currentTenantContext() {
+		List<InjectableContext> contexts = Arc.container().getContexts(TenantScoped.class);
+		if (contexts.size() != 1) {
+			throw new ContextException(String.format("Unexpected TenantScope contexts count %d", contexts.size()));
+		}
+		return (TenantContext) contexts.get(0);
+	}
+
 	private static final class TenantContextController implements ThreadContextController {
 
-		private final ManagedContext tenantContext;
-		private final InjectableContext.ContextState priorState;
-		private final boolean destroyTenantContext;
-
-		TenantContextController(ManagedContext tenantContext, ContextState stateToRestore) {
-			this(tenantContext, stateToRestore, false);
-		}
+		private final TenantContextState priorState;
 
 		// in case of ClearContextSnapshot, we want to destroy instances of the intermediate context
-		TenantContextController(ManagedContext tenantContext, ContextState stateToRestore, boolean destroyRequestContext) {
-			this.tenantContext = tenantContext;
-			this.priorState = stateToRestore;
-			this.destroyTenantContext = destroyRequestContext;
+		TenantContextController(TenantContextState priorState) {
+			this.priorState = priorState;
 		}
 
 		@Override
 		public void endContext() throws IllegalStateException {
-			log.debugf("Ending thread context snapshot - %s %s", destroyTenantContext, priorState);
-			if (destroyTenantContext) {
-				tenantContext.destroy();
+			TenantContext currentTenantContext = currentTenantContext();
+			TenantContextState targetState = priorState != null && priorState.isValid() ? priorState : null;
+			if (targetState != null) {
+				log.debugf("Ending thread context - restoring - %s", targetState);
+				currentTenantContext.activate(targetState);
+			} else if (currentTenantContext.isActive()) {
+				log.debugf("Ending thread context - deactivating");
+				currentTenantContext.deactivate();
 			}
-			// it is not necessary to deactivate the context first - just overwrite the previous state
-			tenantContext.activate(priorState != null && priorState.isValid() ? priorState : null);
+
 		}
 
 	}
