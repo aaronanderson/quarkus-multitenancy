@@ -8,7 +8,7 @@
     <version>1.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>quarkus-multitenancy-deployment</artifactId>
-  <name>Quarkus Multtenancy - Deployment</name>
+  <name>Quarkus Multitenancy - Deployment</name>
   <dependencies>
     <dependency>
       <groupId>io.quarkus</groupId>

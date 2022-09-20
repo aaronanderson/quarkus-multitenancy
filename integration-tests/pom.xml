@@ -8,7 +8,7 @@
     <version>1.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>quarkus-multitenancy-integration-tests</artifactId>
-  <name>Quarkus Multtenancy - Integration Tests</name>
+  <name>Quarkus Multitenancy - Integration Tests</name>
   <properties>
     <skipITs>true</skipITs>
   </properties>

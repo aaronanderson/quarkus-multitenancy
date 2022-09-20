@@ -5,8 +5,8 @@
 	<artifactId>quarkus-multitenancy-parent</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>Quarkus Multtenancy - Parent</name>
-
+	<name>Quarkus Multitenancy - Parent</name>
+	<description>A Quarkus extension that provides tenant resolution, request routing, and a tenant custom CDI scope</description>
 	<url>https://https://github.com/aaronanderson/wdutil</url>
 
 	<licenses>

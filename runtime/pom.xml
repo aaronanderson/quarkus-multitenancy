@@ -8,7 +8,7 @@
     <version>1.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>quarkus-multitenancy</artifactId>
-  <name>Quarkus Multtenancy - Runtime</name>
+  <name>Quarkus Multitenancy - Runtime</name>
   <description>Provide a method for resolving tenant settings and introduce a tenant CDI scope</description>
   <dependencies>
     <dependency>
