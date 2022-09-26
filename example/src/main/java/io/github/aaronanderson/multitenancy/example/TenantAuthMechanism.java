@@ -39,11 +39,9 @@ public class TenantAuthMechanism implements HttpAuthenticationMechanism {
 
 	FormAuthenticationMechanism form;
 
-	@Inject
 	@TenantProperty(name = "oidc-enabled")
 	Instance<Boolean> oidcEnabled;
 
-	@Inject
 	@TenantId
 	Instance<String> tenantId;
 

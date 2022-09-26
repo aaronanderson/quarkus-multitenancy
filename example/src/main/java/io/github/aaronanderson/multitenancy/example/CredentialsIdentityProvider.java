@@ -24,7 +24,6 @@ public class CredentialsIdentityProvider implements IdentityProvider<UsernamePas
 
 	private static final Logger log = Logger.getLogger(CredentialsIdentityProvider.class);
 
-	@Inject
 	@TenantId
 	Instance<String> tenantId;
 

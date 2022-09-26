@@ -25,7 +25,6 @@ public class TrustedIdentityProvider implements IdentityProvider<TrustedAuthenti
 
 	private static final Logger log = Logger.getLogger(TrustedIdentityProvider.class);
 
-	@Inject
 	@TenantId
 	Instance<String> tenantId;
 

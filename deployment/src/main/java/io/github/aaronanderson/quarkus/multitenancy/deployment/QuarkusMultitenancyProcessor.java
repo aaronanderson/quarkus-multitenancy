@@ -2,8 +2,13 @@ package io.github.aaronanderson.quarkus.multitenancy.deployment;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import org.jboss.jandex.DotName;
+
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantConfig;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantContext;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantId;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantLoader;
+import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProperty;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProvider;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantRecorder;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolver;
@@ -11,6 +16,7 @@ import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandle
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantResolverHandler.DefaultTenantResolver;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantScoped;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.deployment.AutoInjectAnnotationBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.BeanContainerListenerBuildItem;
 import io.quarkus.arc.deployment.ContextRegistrationPhaseBuildItem;
@@ -22,7 +28,6 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
 
 class QuarkusMultitenancyProcessor {
@@ -39,6 +44,13 @@ class QuarkusMultitenancyProcessor {
 		AdditionalBeanBuildItem.Builder builder = AdditionalBeanBuildItem.builder().setUnremovable();
 		builder.addBeanClass(TenantProvider.class);
 		additionalBeans.produce(builder.build());
+	}
+
+	@BuildStep
+	void autoInjectMetric(BuildProducer<AutoInjectAnnotationBuildItem> autoInjectAnnotationBuildItemBuildProducer) {
+		autoInjectAnnotationBuildItemBuildProducer.produce(new AutoInjectAnnotationBuildItem(DotName.createSimple(TenantId.class.getName())));
+		autoInjectAnnotationBuildItemBuildProducer.produce(new AutoInjectAnnotationBuildItem(DotName.createSimple(TenantConfig.class.getName())));
+		autoInjectAnnotationBuildItemBuildProducer.produce(new AutoInjectAnnotationBuildItem(DotName.createSimple(TenantProperty.class.getName())));
 	}
 
 	@BuildStep
