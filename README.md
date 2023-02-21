@@ -25,6 +25,8 @@ The Quarkus Multitenancy extension provides the following features:
      </dependency>
     ```
 
+1. Add `quarkus.vertx.customize-arc-context=false` to the src/main/resources/application.properties file to enable the full ARC CDI container instead of the minimal [rective stack](https://github.com/quarkusio/quarkus/pull/27443) one.
+
 1. Create an [Tenant Loader](runtime/src/main/java/io/github/aaronanderson/quarkus/multitenancy/runtime/TenantLoader.java) implementation that will retrieve individual tenant configuration details based on the resolved tenant ID.
 
 1. Review and run the [example appliation](example) for insight on how to setup tenant routing and utilize the @TenantScope CDI scope. Login with any user ID/password combination as authentication is not enforced. 

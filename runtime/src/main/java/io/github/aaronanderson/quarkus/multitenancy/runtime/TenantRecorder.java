@@ -47,11 +47,11 @@ public class TenantRecorder {
 		// Can't programmatically set cache setting on quarkus-cache (only name available on AdditionalCacheNameBuildItem), so directly create internal Caffine cache
 		Cache<String, Map<String, Object>> tenantResolverCache = Caffeine.newBuilder().initialCapacity(20).maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();// expireAfterAccess(10, TimeUnit.MINUTES)
 
-		TenantResolver tenantResolver = beanContainer.instance(TenantResolver.class);
+		TenantResolver tenantResolver = beanContainer.beanInstance(TenantResolver.class);
 		if (tenantResolver == null) {
 			throw new IllegalStateException("TenantResolver implementation is unavailable");
 		}
-		TenantLoader tenantLoader = beanContainer.instance(TenantLoader.class);
+		TenantLoader tenantLoader = beanContainer.beanInstance(TenantLoader.class);
 		if (tenantLoader == null) {
 			throw new IllegalStateException("TenantLoader implementation is unavailable");
 		}

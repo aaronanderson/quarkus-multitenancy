@@ -17,7 +17,6 @@ import org.jboss.logging.Logger;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantId;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProperty;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
-import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -27,6 +26,7 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.PersistentLoginManager;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
@@ -50,7 +50,7 @@ public class TenantAuthMechanism implements HttpAuthenticationMechanism {
 
 	@PostConstruct
 	public void init() {
-		PersistentLoginManager loginManager = new PersistentLoginManager(null, "quarkus-credential", Duration.ofMinutes(30).toMillis(), Duration.ofMinutes(1).toMillis());
+		PersistentLoginManager loginManager = new PersistentLoginManager(null, "quarkus-credential", Duration.ofMinutes(30).toMillis(), Duration.ofMinutes(1).toMillis(), false, CookieSameSite.STRICT.name(), "/");
 		form = new TenantFormAuthenticationMechanism(loginManager);
 	}
 	// @Inject
@@ -103,7 +103,7 @@ public class TenantAuthMechanism implements HttpAuthenticationMechanism {
 		private PersistentLoginManager loginManager;
 
 		public TenantFormAuthenticationMechanism(PersistentLoginManager loginManager) {
-			super("/login", "/login-action", "username", "password", "/access-denied", "/", true, "quarkus-redirect-location", loginManager);
+			super("/login", "/login-action", "username", "password", "/access-denied", "/", true, "quarkus-redirect-location", CookieSameSite.STRICT.name(), "/", loginManager);
 			this.loginManager = loginManager;
 		}
 
