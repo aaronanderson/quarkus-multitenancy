@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import javax.enterprise.context.ContextException;
+import jakarta.enterprise.context.ContextException;
 
 import org.eclipse.microprofile.context.ThreadContext;
 import org.jboss.logging.Logger;

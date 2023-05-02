@@ -5,9 +5,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantConfig;
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantProperty;

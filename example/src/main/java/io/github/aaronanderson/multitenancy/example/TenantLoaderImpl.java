@@ -3,7 +3,7 @@ package io.github.aaronanderson.multitenancy.example;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import io.github.aaronanderson.quarkus.multitenancy.runtime.TenantLoader;
 import io.quarkus.arc.Unremovable;

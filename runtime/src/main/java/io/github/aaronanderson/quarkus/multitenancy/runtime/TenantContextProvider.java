@@ -3,7 +3,7 @@ package io.github.aaronanderson.quarkus.multitenancy.runtime;
 import java.util.List;
 import java.util.Map;
 
-import javax.enterprise.context.ContextException;
+import jakarta.enterprise.context.ContextException;
 
 import org.eclipse.microprofile.context.spi.ThreadContextController;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;

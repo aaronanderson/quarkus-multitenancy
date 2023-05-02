@@ -7,8 +7,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import javax.enterprise.context.NormalScope;
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.context.NormalScope;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 @Documented
 @NormalScope

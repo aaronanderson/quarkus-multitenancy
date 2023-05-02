@@ -1,6 +1,6 @@
 package io.github.aaronanderson.quarkus.multitenancy.deployment;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jboss.jandex.DotName;
 

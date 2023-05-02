@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.enterprise.context.ContextException;
+import jakarta.enterprise.context.ContextException;
 
 import org.jboss.logging.Logger;
 
