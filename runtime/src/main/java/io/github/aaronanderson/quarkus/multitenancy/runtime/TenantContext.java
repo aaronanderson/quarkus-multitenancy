@@ -16,6 +16,7 @@ import org.jboss.logging.Logger;
 import io.quarkus.arc.ContextInstanceHandle;
 import io.quarkus.arc.CurrentContext;
 import io.quarkus.arc.InjectableBean;
+import io.quarkus.arc.InjectableContext.ContextState;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.arc.impl.ContextInstanceHandleImpl;
 import io.quarkus.arc.impl.CreationalContextImpl;
@@ -97,7 +98,7 @@ public class TenantContext implements ManagedContext {
 	}
 
 	@Override
-	public void activate(ContextState initialState) {
+	public ContextState activate(ContextState initialState) {
 		if (initialState == null) {
 			currentContext.set(new TenantContextState(new ConcurrentHashMap<>()));
 		} else {
@@ -110,6 +111,7 @@ public class TenantContext implements ManagedContext {
 
 		log.debugf("activate %s", currentContext.get());
 
+		return currentContext.get();
 	}
 
 	@Override
